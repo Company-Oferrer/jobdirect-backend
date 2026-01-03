@@ -37,13 +37,24 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Construye la imagen a partir del Dockerfile y la publica
-      - name: Build & Push Docker image
+      # Construye la imagen a partir del Dockerfile y la publica (dev/qa - sin latest)
+      - name: Build & Push Docker image (dev/qa)
+        if: github.event.inputs.ambiente != 'prod'
         uses: docker/build-push-action@v6
         with:
-          context: .                # Ubicación del Dockerfile
-          push: true                # Ejecuta docker push
+          context: .
+          push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ github.event.inputs.ambiente }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ steps.vars.outputs.SHORT_SHA }}
+
+      # Construye la imagen a partir del Dockerfile y la publica (prod - con latest)
+      - name: Build & Push Docker image (prod)
+        if: github.event.inputs.ambiente == 'prod'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ steps.vars.outputs.SHORT_SHA }}
