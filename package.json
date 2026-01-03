@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "lint": "node --check index.js",
+    "test": "echo 'TODO: Implementar tests' && exit 0"
   },
   "keywords": [
     "express",
