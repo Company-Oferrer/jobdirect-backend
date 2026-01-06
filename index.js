@@ -86,6 +86,12 @@ app.get('/api/jobs', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Solo iniciar el servidor si el archivo se ejecuta directamente (no cuando se importa para tests)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+// Exportar la app para testing
+module.exports = app;
