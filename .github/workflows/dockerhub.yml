@@ -1,0 +1,59 @@
+name: CD - Deploy Backend to DockerHub
+
+# Deployment manual por ambiente
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: "Selecciona el ambiente de despliegue"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Clona el repositorio en el runner
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get short Git SHA
+        id: vars
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Autenticación en Docker Hub usando secrets
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Construye la imagen a partir del Dockerfile y la publica (dev/qa - sin latest)
+      - name: Build & Push Docker image (dev/qa)
+        if: github.event.inputs.ambiente != 'prod'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ github.event.inputs.ambiente }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ steps.vars.outputs.SHORT_SHA }}
+
+      # Construye la imagen a partir del Dockerfile y la publica (prod - con latest)
+      - name: Build & Push Docker image (prod)
+        if: github.event.inputs.ambiente == 'prod'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:latest

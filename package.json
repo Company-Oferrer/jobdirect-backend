@@ -8,7 +8,8 @@
     "dev": "nodemon index.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "lint": "node --check index.js"
   },
   "keywords": [
     "express",
