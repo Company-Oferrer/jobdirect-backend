@@ -1,18 +1,23 @@
-name: CD - Deploy Backend to DockerHub
+name: CD - Deploy Backend to DockerHub (Manual QA/PROD)
 
-# Deployment manual por ambiente
+# Deployment manual por ambiente (QA y PROD principalmente)
+# Para DEV usa el workflow ci-cd-dev.yml que se dispara automáticamente
 on:
   workflow_dispatch:
     inputs:
       ambiente:
         description: "Selecciona el ambiente de despliegue"
         required: true
-        default: "dev"
+        default: "qa"
         type: choice
         options:
-          - dev
           - qa
           - prod
+      trigger_deploy:
+        description: "¿Disparar deploy automático a K8s?"
+        required: true
+        default: true
+        type: boolean
 
 jobs:
   build-and-push:
@@ -37,23 +42,41 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Construye la imagen a partir del Dockerfile y la publica (dev/qa - sin latest)
-      - name: Build & Push Docker image (dev/qa)
-        if: github.event.inputs.ambiente != 'prod'
+      # Construye la imagen a partir del Dockerfile y la publica (QA)
+      - name: Build & Push Docker image (QA)
+        if: github.event.inputs.ambiente == 'qa'
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ github.event.inputs.ambiente }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:qa
             ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ steps.vars.outputs.SHORT_SHA }}
 
-      # Construye la imagen a partir del Dockerfile y la publica (prod - con latest)
-      - name: Build & Push Docker image (prod)
+      # Construye la imagen a partir del Dockerfile y la publica (PROD - con latest)
+      - name: Build & Push Docker image (PROD)
         if: github.event.inputs.ambiente == 'prod'
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:prod
             ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ steps.vars.outputs.SHORT_SHA }}
+
+      # Trigger deploy to AKS (if requested)
+      - name: Trigger deployment to AKS
+        if: github.event.inputs.trigger_deploy == 'true'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.INFRA_DEPLOY_TOKEN }}
+          repository: Company-Oferrer/jobdirect-infra
+          event-type: deploy-backend-${{ github.event.inputs.ambiente }}
+          client-payload: |
+            {
+              "image_tag": "${{ steps.vars.outputs.SHORT_SHA }}",
+              "triggered_by": "${{ github.actor }}",
+              "commit_sha": "${{ github.sha }}",
+              "environment": "${{ github.event.inputs.ambiente }}"
+            }

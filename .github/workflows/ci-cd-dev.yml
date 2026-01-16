@@ -1,0 +1,70 @@
+name: CI/CD - Auto Deploy to DEV
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get short Git SHA
+        id: vars
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # Run tests
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run linter
+        run: npm run lint
+
+      # Build Docker image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:dev
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ steps.vars.outputs.SHORT_SHA }}
+
+      # Trigger deploy to AKS
+      - name: Trigger deployment to AKS DEV
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.INFRA_DEPLOY_TOKEN }}
+          repository: Company-Oferrer/jobdirect-infra
+          event-type: deploy-backend-dev
+          client-payload: |
+            {
+              "image_tag": "${{ steps.vars.outputs.SHORT_SHA }}",
+              "triggered_by": "${{ github.actor }}",
+              "commit_sha": "${{ github.sha }}",
+              "commit_message": "${{ github.event.head_commit.message }}"
+            }
