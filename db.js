@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: 'postgresql://jobdirectadmin:Proyectos123@pg-jobdirect-dev.postgres.database.azure.com:5432/jobdirect',
 });
 
 module.exports = pool;
