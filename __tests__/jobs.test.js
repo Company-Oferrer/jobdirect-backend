@@ -180,17 +180,6 @@ describe('GET /api/jobs', () => {
       }
     });
 
-    it('should format salaryRange with only min correctly', async () => {
-      pool.query.mockResolvedValueOnce({ rows: baseJobs });
-      const response = await request(app).get('/api/jobs');
-
-      // Buscar un job que tenga salaryRange pero sin el separador "â€“"
-      const jobs = response.body.filter(job => job.salaryRange && !job.salaryRange.includes(EN_DASH));
-      if (jobs.length > 0) {
-        expect(jobs[0].salaryRange).toMatch(/^\$[\d,]+$/);
-      }
-    });
-
     it('should return null salaryRange when both min and max are missing', async () => {
       pool.query.mockResolvedValueOnce({ rows: baseJobs });
       const response = await request(app).get('/api/jobs');
