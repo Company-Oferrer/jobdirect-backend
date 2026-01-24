@@ -26,4 +26,3 @@ jobs:
 
       - name: Run tests
         run: yarn test
-        continue-on-error: true  # TODO: Remover cuando tests estén implementados
