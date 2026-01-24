@@ -77,6 +77,23 @@ Endpoint simple para comprobar que el servidor está vivo.
 { "status": "ok" }
 ```
 
+### `POST /api/seed`
+
+Inicializa la base de datos con datos ficticios para desarrollo/testing.
+Crea la tabla `jobs` si no existe y la llena con 12 ofertas de ejemplo.
+
+**Ejemplo de uso:**
+
+```bash
+curl -X POST http://localhost:3000/api/seed
+```
+
+**Respuesta de ejemplo:**
+
+```json
+{ "message": "Database seeded successfully", "count": 12 }
+```
+
 ### `GET /api/jobs`
 
 Devuelve el listado de ofertas de trabajo.
