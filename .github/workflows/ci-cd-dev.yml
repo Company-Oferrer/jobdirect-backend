@@ -62,10 +62,9 @@ jobs:
           token: ${{ secrets.INFRA_DEPLOY_TOKEN }}
           repository: Company-Oferrer/jobdirect-infra
           event-type: deploy-backend-dev
-          client-payload: |
-            {
-              "image_tag": "${{ steps.vars.outputs.SHORT_SHA }}",
-              "triggered_by": "${{ github.actor }}",
-              "commit_sha": "${{ github.sha }}",
-              "commit_message": "${{ github.event.head_commit.message }}"
-            }
+          client-payload: ${{ toJson({
+            image_tag: steps.vars.outputs.SHORT_SHA,
+            triggered_by: github.actor,
+            commit_sha: github.sha,
+            commit_message: github.event.head_commit.message
+          }) }}
